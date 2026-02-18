@@ -1,6 +1,4 @@
 const ASSESSMENT_MINUTES = 30;
-const RESULTS_STORAGE_KEY = "restaurant_gma_results";
-const EMAIL_CONFIG_STORAGE_KEY = "restaurant_gma_email_config";
 
 const SECTION_WEIGHTS = {
   Numerical: 0.3,
@@ -52,9 +50,7 @@ const QUESTIONS = [
 const state = {
   endAt: null,
   timerId: null,
-  startedAt: null,
-  currentResult: null,
-  submitStatus: ""
+  startedAt: null
 };
 
 const setupEl = document.querySelector("#setup");
@@ -67,8 +63,6 @@ const submitBtn = document.querySelector("#submitBtn");
 
 startBtn.addEventListener("click", startTest);
 submitBtn.addEventListener("click", () => submitTest(false));
-resultsEl.addEventListener("click", handleResultsClick);
-loadEmailConfig();
 
 function startTest() {
   const name = valueOf("#candidateName");
@@ -137,9 +131,8 @@ function tick() {
   }
 }
 
-async function submitTest(autoSubmitted) {
+function submitTest(autoSubmitted) {
   clearInterval(state.timerId);
-  const emailConfig = getEmailConfig();
   const answers = {};
 
   QUESTIONS.forEach((q) => {
@@ -151,8 +144,6 @@ async function submitTest(autoSubmitted) {
   const payload = {
     candidateName: valueOf("#candidateName"),
     candidateEmail: valueOf("#candidateEmail"),
-    resultsRecipient: valueOf("#resultsRecipient"),
-    backendUrl: emailConfig.backendUrl,
     role: "management_systems",
     roleLabel: PASS_MODEL.label,
     submittedAt: new Date().toISOString(),
@@ -161,17 +152,6 @@ async function submitTest(autoSubmitted) {
     answers,
     ...score
   };
-
-  state.submitStatus = "";
-  saveResult(payload);
-  localStorage.setItem("restaurant_gma_last_result", JSON.stringify(payload));
-
-  if (emailConfig.backendUrl) {
-    const outcome = await sendResultToBackend(payload, emailConfig);
-    state.submitStatus = outcome.ok
-      ? "Auto-email sent by backend."
-      : `Auto-email failed: ${outcome.error}`;
-  }
 
   testEl.classList.add("hidden");
   renderResults(payload);
@@ -237,7 +217,6 @@ function scoreCandidate(answers) {
 }
 
 function renderResults(result) {
-  state.currentResult = result;
   resultsEl.classList.remove("hidden");
 
   const recommendation = result.pass ? "Advance to structured interview" : "Do not advance";
@@ -272,231 +251,8 @@ function renderResults(result) {
         <tr><td>${COMPETENCY_META.execution.label}</td><td>${result.competencyTotals.execution.correct}</td><td>${result.competencyTotals.execution.total}</td><td>${Math.round(COMPETENCY_META.execution.minRatio * 100)}%</td></tr>
       </tbody>
     </table>
-    <div class="actions">
-      <button id="downloadCsvBtn" type="button">Download Results CSV</button>
-      <button id="emailDraftBtn" type="button">Draft Email</button>
-      <button id="feedbackBtn" type="button">Send Feedback</button>
-    </div>
-    ${state.submitStatus ? `<p class="small"><strong>Email Status:</strong> ${escapeHtml(state.submitStatus)}</p>` : ""}
-    <p class="small">Copy data for ATS notes:</p>
-    <pre>${escapeHtml(JSON.stringify(result, null, 2))}</pre>
+    <p class="small">Assessment complete. Thank you.</p>
   `;
-}
-
-async function handleResultsClick(event) {
-  const target = event.target;
-  if (!(target instanceof HTMLElement)) return;
-
-  if (target.id === "downloadCsvBtn") {
-    downloadResultsCsv();
-  }
-  if (target.id === "emailDraftBtn" && state.currentResult) {
-    openEmailDraft(state.currentResult);
-  }
-  if (target.id === "feedbackBtn" && state.currentResult) {
-    await submitFeedback(state.currentResult);
-  }
-}
-
-function saveResult(payload) {
-  const existing = loadResults();
-  existing.push(payload);
-  localStorage.setItem(RESULTS_STORAGE_KEY, JSON.stringify(existing));
-}
-
-function loadResults() {
-  try {
-    const raw = localStorage.getItem(RESULTS_STORAGE_KEY);
-    const parsed = raw ? JSON.parse(raw) : [];
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
-}
-
-function downloadResultsCsv() {
-  const rows = loadResults();
-  if (!rows.length) {
-    alert("No saved results yet.");
-    return;
-  }
-
-  const header = [
-    "candidate_name",
-    "candidate_email",
-    "results_recipient",
-    "track",
-    "raw_score",
-    "weighted_score",
-    "section_weighted_score",
-    "competency_weighted_score",
-    "competency_gate_pass",
-    "pass",
-    "numerical_correct",
-    "verbal_correct",
-    "logical_correct",
-    "fb_correct",
-    "systems_correct",
-    "execution_correct",
-    "duration_minutes",
-    "submitted_at"
-  ];
-
-  const csvRows = [header.join(",")];
-  rows.forEach((r) => {
-    csvRows.push(toCsvRow([
-      r.candidateName,
-      r.candidateEmail,
-      r.resultsRecipient || "",
-      r.roleLabel,
-      r.rawScore,
-      r.weightedScore,
-      r.sectionWeightedScore,
-      r.competencyWeightedScore,
-      r.competencyPass ? "Yes" : "No",
-      r.pass ? "Yes" : "No",
-      r.sectionTotals?.Numerical?.correct ?? "",
-      r.sectionTotals?.Verbal?.correct ?? "",
-      r.sectionTotals?.Logical?.correct ?? "",
-      r.competencyTotals?.fb?.correct ?? "",
-      r.competencyTotals?.systems?.correct ?? "",
-      r.competencyTotals?.execution?.correct ?? "",
-      r.durationMinutes,
-      r.submittedAt
-    ]));
-  });
-
-  const blob = new Blob([csvRows.join("\n")], { type: "text/csv;charset=utf-8;" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = "management_systems_gma_results.csv";
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  URL.revokeObjectURL(url);
-}
-
-function toCsvRow(values) {
-  return values
-    .map((value) => {
-      const safe = String(value ?? "").replace(/"/g, "\"\"");
-      return `"${safe}"`;
-    })
-    .join(",");
-}
-
-function openEmailDraft(result) {
-  const recipient = String(result.resultsRecipient || "").trim();
-  const recommendation = result.pass ? "Advance to structured interview" : "Do not advance";
-  const competencyGate = result.competencyPass ? "Met" : "Not met";
-
-  const subject = `GMA Result - ${result.candidateName} - ${result.roleLabel}`;
-  const body = [
-    `Candidate: ${result.candidateName}`,
-    `Candidate Email: ${result.candidateEmail || "N/A"}`,
-    `Track: ${result.roleLabel}`,
-    `Raw Score: ${result.rawScore}/24`,
-    `Weighted Score: ${result.weightedScore}/100`,
-    `Recommendation: ${recommendation}`,
-    `Competency Gate: ${competencyGate}`,
-    `Section Scores: Numerical ${result.sectionTotals.Numerical.correct}/8, Verbal ${result.sectionTotals.Verbal.correct}/8, Logical ${result.sectionTotals.Logical.correct}/8`,
-    `Competency Scores: F&B ${result.competencyTotals.fb.correct}/8, Systems ${result.competencyTotals.systems.correct}/8, Execution ${result.competencyTotals.execution.correct}/8`,
-    `Submitted At: ${new Date(result.submittedAt).toLocaleString()}`
-  ].join("\n");
-
-  const mailto = `mailto:${recipient}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-  window.location.href = mailto;
-}
-
-function getEmailConfig() {
-  const config = {
-    backendUrl: valueOf("#backendUrl"),
-    apiKey: valueOf("#backendApiKey")
-  };
-  localStorage.setItem(EMAIL_CONFIG_STORAGE_KEY, JSON.stringify(config));
-  return config;
-}
-
-function loadEmailConfig() {
-  try {
-    const raw = localStorage.getItem(EMAIL_CONFIG_STORAGE_KEY);
-    if (!raw) return;
-    const parsed = JSON.parse(raw);
-
-    const backendEl = document.querySelector("#backendUrl");
-    const keyEl = document.querySelector("#backendApiKey");
-    if (backendEl && parsed?.backendUrl) backendEl.value = parsed.backendUrl;
-    if (keyEl && parsed?.apiKey) keyEl.value = parsed.apiKey;
-  } catch {
-    // Ignore malformed localStorage values.
-  }
-}
-
-async function sendResultToBackend(payload, config) {
-  try {
-    const headers = { "Content-Type": "application/json" };
-    if (config.apiKey) headers["x-api-key"] = config.apiKey;
-
-    const response = await fetch(config.backendUrl, {
-      method: "POST",
-      headers,
-      body: JSON.stringify(payload)
-    });
-
-    const data = await response.json().catch(() => ({}));
-    if (!response.ok || data?.ok === false) {
-      return { ok: false, error: data?.error || `HTTP ${response.status}` };
-    }
-    return { ok: true };
-  } catch (error) {
-    return { ok: false, error: error instanceof Error ? error.message : "Unknown network error" };
-  }
-}
-
-function getFeedbackEndpoint(result) {
-  const source = String(result.backendUrl || "").trim();
-  if (!source) return "";
-  return source.replace(/\/api\/results\/email\/?$/, "/api/feedback/email");
-}
-
-async function submitFeedback(result) {
-  const comment = window.prompt("Enter beta feedback to send:");
-  if (!comment || !comment.trim()) return;
-
-  const endpoint = getFeedbackEndpoint(result);
-  if (!endpoint) {
-    alert("No backend URL set. Add Backend URL in setup first.");
-    return;
-  }
-
-  const apiKey = valueOf("#backendApiKey");
-  const headers = { "Content-Type": "application/json" };
-  if (apiKey) headers["x-api-key"] = apiKey;
-
-  const body = {
-    candidateName: result.candidateName,
-    candidateEmail: result.candidateEmail,
-    roleLabel: result.roleLabel,
-    submittedAt: result.submittedAt,
-    feedback: comment.trim()
-  };
-
-  try {
-    const response = await fetch(endpoint, {
-      method: "POST",
-      headers,
-      body: JSON.stringify(body)
-    });
-    const data = await response.json().catch(() => ({}));
-    if (!response.ok || data?.ok === false) {
-      alert(`Feedback send failed: ${data?.error || `HTTP ${response.status}`}`);
-      return;
-    }
-    alert("Feedback sent.");
-  } catch (error) {
-    alert(`Feedback send failed: ${error instanceof Error ? error.message : "Unknown error"}`);
-  }
 }
 
 function valueOf(selector) {
