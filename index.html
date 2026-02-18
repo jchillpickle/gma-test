@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Management Systems GMA Screening</title>
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <main class="shell">
+    <header>
+      <h1>Management Systems GMA Screening</h1>
+      <p>Management-focused assessment with food and beverage knowledge, systems design, and self-directed execution.</p>
+    </header>
+
+    <section id="setup" class="card">
+      <h2>Candidate Setup</h2>
+      <div class="grid">
+        <label>Candidate Name
+          <input id="candidateName" type="text" placeholder="Full name" />
+        </label>
+        <label>Email
+          <input id="candidateEmail" type="email" placeholder="name@email.com" />
+        </label>
+        <label>Results Email (optional)
+          <input id="resultsRecipient" type="email" placeholder="hiring@yourcompany.com" />
+        </label>
+        <label>Backend URL (optional)
+          <input id="backendUrl" type="url" placeholder="http://localhost:8787/api/results/email" />
+        </label>
+        <label>Backend API Key (optional)
+          <input id="backendApiKey" type="password" placeholder="Only if your backend requires it" />
+        </label>
+      </div>
+      <p class="small">Time limit: 30 minutes. No calculator, no internet/AI tools. One answer per question.</p>
+      <p class="small">Competency gates: F&B knowledge, systems design, and project execution ownership.</p>
+      <button id="startBtn">Start Assessment</button>
+    </section>
+
+    <section id="test" class="card hidden">
+      <div class="topbar">
+        <h2>Assessment</h2>
+        <div id="timer" class="timer">30:00</div>
+      </div>
+      <form id="testForm"></form>
+      <div class="actions">
+        <button id="submitBtn" type="button">Submit Test</button>
+      </div>
+    </section>
+
+    <section id="results" class="card hidden"></section>
+
+    <section class="card links">
+      <h2>Admin Assets</h2>
+      <ul>
+        <li><a href="./admin-scoring.html">Admin scoring sheet</a></li>
+        <li><a href="./candidate-version.html">Candidate question sheet</a></li>
+        <li><a href="./PROLIANT_CHECKLIST.md">ProLiant implementation checklist</a></li>
+      </ul>
+    </section>
+  </main>
+
+  <script src="./app.js"></script>
+</body>
+</html>
