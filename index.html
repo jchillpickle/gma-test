@@ -23,7 +23,7 @@
           <input id="candidateEmail" type="email" placeholder="name@email.com" />
         </label>
       </div>
-      <p class="small">Time limit: 30 minutes. No calculator, no internet/AI tools. One answer per question.</p>
+      <p class="small">50 questions. Time limit: 45 minutes. No calculator, no internet/AI tools. One answer per question.</p>
       <p class="small">Competency gates: F&B knowledge, systems design, and project execution ownership.</p>
       <button id="startBtn">Start Assessment</button>
     </section>
@@ -31,7 +31,7 @@
     <section id="test" class="card hidden">
       <div class="topbar">
         <h2>Assessment</h2>
-        <div id="timer" class="timer">30:00</div>
+        <div id="timer" class="timer">45:00</div>
       </div>
       <form id="testForm"></form>
       <div class="actions">
@@ -42,6 +42,7 @@
     <section id="results" class="card hidden"></section>
   </main>
 
+  <script src="./config.js"></script>
   <script src="./app.js"></script>
 </body>
 </html>
