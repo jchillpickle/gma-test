@@ -1,4 +1,12 @@
-const ASSESSMENT_MINUTES = 30;
+const ASSESSMENT_MINUTES = 45;
+
+const APP_CONFIG = window.GMA_CONFIG || {};
+const SUBMIT_ENDPOINT = String(APP_CONFIG.submitEndpoint || "").trim();
+const SHOW_CANDIDATE_SCORE = Boolean(APP_CONFIG.showCandidateScore);
+const TEST_VERSION = String(APP_CONFIG.testVersion || "mgmt-sys-v2-50q").trim();
+const RAPID_FLAG_MINUTES = Number(APP_CONFIG.minDurationMinutes || 15);
+
+const SECTION_ORDER = ["Numerical", "Verbal", "Logical"];
 
 const SECTION_WEIGHTS = {
   Numerical: 0.3,
@@ -14,43 +22,100 @@ const COMPETENCY_META = {
 
 const PASS_MODEL = {
   label: "Management (F&B Systems)",
-  rawPass: 15,
+  rawPassRatio: 15 / 24,
   weightedPass: 70
 };
 
 const QUESTIONS = [
-  { id: 1, section: "Numerical", competency: "fb", prompt: "Weekly sales were $28,000, food COGS was $8,400, and labor was $7,000. Prime cost % =", options: ["52%", "53%", "55%", "57%"], answer: "C" },
-  { id: 2, section: "Numerical", competency: "fb", prompt: "An 80 lb fish order yields 60 lb usable product. Yield % =", options: ["70%", "75%", "80%", "85%"], answer: "B" },
-  { id: 3, section: "Numerical", competency: "systems", prompt: "Five stations each save 6 minutes per hour after a workflow redesign. Over a 4-hour service, total minutes saved =", options: ["90", "100", "120", "140"], answer: "C" },
-  { id: 4, section: "Numerical", competency: "fb", prompt: "A cocktail sells for $14 with a $3.50 ingredient cost. Beverage cost % =", options: ["20%", "25%", "30%", "35%"], answer: "B" },
-  { id: 5, section: "Numerical", competency: "execution", prompt: "A project has three phases requiring 12, 18, and 10 hours. If one manager has 8 hours/week to dedicate, minimum weeks needed =", options: ["4", "4.5", "5", "6"], answer: "C" },
-  { id: 6, section: "Numerical", competency: "fb", prompt: "Inventory variance improved from 6% to 3.5% on a $40,000 inventory base. Dollar improvement =", options: ["$800", "$1,000", "$1,200", "$1,400"], answer: "B" },
-  { id: 7, section: "Numerical", competency: "execution", prompt: "Each close checklist takes 45 minutes. Six checklists must be completed tonight. Minimum combined labor hours =", options: ["4.0", "4.5", "5.0", "5.5"], answer: "B" },
-  { id: 8, section: "Numerical", competency: "fb", prompt: "Average ticket time dropped from 14 to 11 minutes across 120 tickets after a line-system change. Total line-minutes saved =", options: ["180", "240", "300", "360"], answer: "D" },
+  { id: 1, section: "Numerical", competency: "fb", prompt: "Weekly sales were $32,000, food COGS was $9,600, and labor was $8,000. Prime cost % =", options: ["52%", "53%", "55%", "57%"], answer: "C" },
+  { id: 2, section: "Numerical", competency: "fb", prompt: "A 120 lb seafood order yields 90 lb usable product. Yield % =", options: ["70%", "75%", "80%", "85%"], answer: "B" },
+  { id: 3, section: "Numerical", competency: "systems", prompt: "Six stations each save 5 minutes per hour after redesign. Over a 3-hour service, total minutes saved =", options: ["60", "75", "90", "120"], answer: "C" },
+  { id: 4, section: "Numerical", competency: "execution", prompt: "A project requires 36 total hours. If one manager can dedicate 9 hours per week, minimum weeks needed =", options: ["3", "4", "4.5", "5"], answer: "B" },
+  { id: 5, section: "Numerical", competency: "fb", prompt: "A cocktail sells for $15 and ingredient cost is $4.20. Beverage cost % =", options: ["24%", "26%", "28%", "30%"], answer: "C" },
+  { id: 6, section: "Numerical", competency: "systems", prompt: "Average ticket time dropped from 12 to 9 minutes across 150 tickets. Total minutes saved =", options: ["300", "360", "420", "450"], answer: "D" },
+  { id: 7, section: "Numerical", competency: "execution", prompt: "Four tasks take 2.5 hours each plus 1.5 hours QA. Two managers can each work 4 hours/day. Minimum days to finish =", options: ["1", "2", "3", "4"], answer: "B" },
+  { id: 8, section: "Numerical", competency: "fb", prompt: "Inventory variance improved from 5% to 2% on a $50,000 base. Dollar improvement =", options: ["$1,000", "$1,250", "$1,500", "$1,750"], answer: "C" },
+  { id: 9, section: "Numerical", competency: "systems", prompt: "Checklist compliance rose from 70% to 88% across 200 shifts. Additional compliant shifts =", options: ["18", "24", "30", "36"], answer: "D" },
+  { id: 10, section: "Numerical", competency: "execution", prompt: "Five deliverables each require 3 days. Two owners can work in parallel continuously. Minimum calendar days =", options: ["6", "7", "8", "9"], answer: "C" },
+  { id: 11, section: "Numerical", competency: "fb", prompt: "A dish sells for $24 and food cost is $7.20. Food cost % =", options: ["25%", "28%", "30%", "32%"], answer: "C" },
+  { id: 12, section: "Numerical", competency: "systems", prompt: "Waste dropped from 420 lb to 294 lb. Percent reduction =", options: ["20%", "30%", "35%", "40%"], answer: "B" },
+  { id: 13, section: "Numerical", competency: "execution", prompt: "Seven close tasks take 20 minutes each. Two closers split equally. Minutes per closer =", options: ["50", "60", "70", "80"], answer: "C" },
+  { id: 14, section: "Numerical", competency: "fb", prompt: "A chicken case costs $144 for 48 lb usable product. Cost per usable lb =", options: ["$2.50", "$3.00", "$3.25", "$3.50"], answer: "B" },
+  { id: 15, section: "Numerical", competency: "systems", prompt: "Forecast accuracy improved from 62% to 77%. Improvement in percentage points =", options: ["10", "12", "15", "18"], answer: "C" },
+  { id: 16, section: "Numerical", competency: "execution", prompt: "Five checkpoints occur every 3 days starting Day 0. Final checkpoint is on Day =", options: ["9", "10", "11", "12"], answer: "D" },
+  { id: 17, section: "Numerical", competency: "systems", prompt: "Parallel prep lanes: lane A totals 75 min, lane B totals 25 min. Total completion time =", options: ["40", "60", "70", "75"], answer: "D" },
 
-  { id: 9, section: "Verbal", competency: "execution", prompt: "Choose the strongest project kickoff brief:", options: ["Fix onboarding soon.", "By May 30, reduce manager onboarding from 21 to 14 days; owner: Sam; weekly milestone reviews.", "Team should improve processes.", "We will figure it out as we go."], answer: "B" },
-  { id: 10, section: "Verbal", competency: "fb", prompt: "Policy: discard any hot-held item below 135F for more than 4 hours. Soup was at 131F for 2.5 hours, then reheated to 165F. Based on policy:", options: ["Must discard", "Can keep", "Must cool first", "Cannot determine"], answer: "B" },
-  { id: 11, section: "Verbal", competency: "systems", prompt: "Choose the strongest root-cause statement:", options: ["Team is lazy.", "Peak ticket times spike when expo calls are inconsistent and station setup is delayed.", "Everyone needs to try harder.", "Guests are impatient."], answer: "B" },
-  { id: 12, section: "Verbal", competency: "systems", prompt: "After adding a pre-shift checklist, late opens dropped from 18% to 6%. Best inference:", options: ["The checklist likely improved opening reliability.", "Labor costs definitely increased.", "Sales likely doubled.", "Guest volume likely dropped."], answer: "A" },
-  { id: 13, section: "Verbal", competency: "execution", prompt: "Choose the strongest status update:", options: ["Project is on track.", "Phase 1 complete; vendor delay risks week-3 target; mitigation: temporary supplier approved today.", "Need help maybe.", "Everything is hard right now."], answer: "B" },
-  { id: 14, section: "Verbal", competency: "systems", prompt: "Best synonym for bottleneck:", options: ["reward", "shortcut", "constraint", "forecast"], answer: "C" },
-  { id: 15, section: "Verbal", competency: "fb", prompt: "Menu mix shifted toward low-margin items while sales stayed flat. Best immediate action:", options: ["Cut staff on all shifts.", "Increase discounts on low-margin items.", "Rebalance promotions toward high-margin items and retrain upselling.", "Wait until month-end before acting."], answer: "C" },
-  { id: 16, section: "Verbal", competency: "execution", prompt: "Best rewrite: The project plan that Jordan wrote it missed dependencies.", options: ["The project plan Jordan wrote missed dependencies.", "Jordan project plan wrote it missed dependencies.", "The plan was Jordan dependencies missed wrote.", "Jordan wrote it, the project plan dependencies missed."], answer: "A" },
+  { id: 18, section: "Verbal", competency: "execution", prompt: "Choose the strongest kickoff brief:", options: ["Improve onboarding soon.", "By June 30, cut manager onboarding from 20 to 14 days; owner: Alex; weekly milestones.", "Team should work harder.", "We will decide details later."], answer: "B" },
+  { id: 19, section: "Verbal", competency: "fb", prompt: "Policy: discard hot-held food below 135F for more than 4 hours. Chili stayed at 131F for 5 hours. Correct action:", options: ["Discard", "Reheat and serve", "Cool and reheat tomorrow", "Label and hold"], answer: "A" },
+  { id: 20, section: "Verbal", competency: "systems", prompt: "Choose the strongest root-cause statement:", options: ["Staff are careless.", "Ticket spikes occur when expo callouts vary and station setup starts late.", "Guests are difficult.", "Kitchen is unlucky."], answer: "B" },
+  { id: 21, section: "Verbal", competency: "execution", prompt: "Choose the strongest status update:", options: ["Project looks fine.", "Phase 1 complete; vendor delay risks week-3 target; mitigation approved today.", "Need help maybe.", "Everything is hard."], answer: "B" },
+  { id: 22, section: "Verbal", competency: "fb", prompt: "Low-margin items increased while sales stayed flat. Best immediate move:", options: ["Cut all labor", "Increase low-margin discounts", "Promote high-margin items and retrain upselling", "Wait until quarter close"], answer: "C" },
+  { id: 23, section: "Verbal", competency: "systems", prompt: "Which SOP line is strongest?", options: ["Check things carefully.", "Verify line temp logs by 10:30 AM and initial the checklist.", "Be professional.", "Move quickly."], answer: "B" },
+  { id: 24, section: "Verbal", competency: "execution", prompt: "Best rewrite: The rollout plan that Maya wrote it missed dependencies.", options: ["The rollout plan Maya wrote missed dependencies.", "Maya rollout wrote plan dependencies missed.", "The plan was Maya wrote it dependencies.", "Maya wrote, plan dependencies missing it."], answer: "A" },
+  { id: 25, section: "Verbal", competency: "fb", prompt: "If menu price increases 5% while unit cost stays flat, gross margin per item will most likely:", options: ["Decrease", "Increase", "Stay identical in dollars and percent", "Become negative"], answer: "B" },
+  { id: 26, section: "Verbal", competency: "systems", prompt: "Best change-management sequence:", options: ["Announce, blame, enforce", "Define target, pilot, measure, standardize", "Train first, define later", "Roll out to all stores immediately"], answer: "B" },
+  { id: 27, section: "Verbal", competency: "execution", prompt: "Strongest ownership statement:", options: ["Someone should handle this.", "I own this project and will send Friday milestone reports.", "Team can decide if needed.", "We will revisit next quarter."], answer: "B" },
+  { id: 28, section: "Verbal", competency: "fb", prompt: "A guest reports a nut allergy. Best immediate response:", options: ["Use standard prep tools", "Mark ticket allergy, sanitize station/tools, and confirm with expo", "Serve quickly before delay", "Offer item without checking ingredients"], answer: "B" },
+  { id: 29, section: "Verbal", competency: "systems", prompt: "Best KPI for reducing ticket-time variability:", options: ["Average weekly sales", "90th percentile ticket time by station", "Monthly social followers", "Total menu count"], answer: "B" },
+  { id: 30, section: "Verbal", competency: "execution", prompt: "Strongest escalation message:", options: ["This is bad.", "Risk R3 jeopardizes launch date; requesting approval for backup vendor by 3 PM.", "Can we talk soon?", "Not sure what to do."], answer: "B" },
+  { id: 31, section: "Verbal", competency: "fb", prompt: "Best control to reduce high-value inventory variance:", options: ["Weekly visual check only", "No receiving logs", "Daily count with variance sign-off", "Monthly estimate"], answer: "C" },
+  { id: 32, section: "Verbal", competency: "fb", prompt: "Pilot menu change increased contribution margin by 9% with flat traffic. Best inference:", options: ["Mix or pricing likely improved profitability", "Traffic doubled", "Labor automatically improved", "Food safety risks increased"], answer: "A" },
+  { id: 33, section: "Verbal", competency: "systems", prompt: "Primary purpose of a post-mortem after rollout:", options: ["Assign blame", "Skip future planning", "Capture lessons and system fixes", "Replace SOPs with memory"], answer: "C" },
+  { id: 34, section: "Verbal", competency: "execution", prompt: "Best phrase for deadline ownership:", options: ["We will try", "Hopefully done", "Deliverable owner and date are confirmed", "Maybe next week"], answer: "C" },
 
-  { id: 17, section: "Logical", competency: "systems", prompt: "Dependency order: define KPI before pilot, pilot before SOP rollout, SOP rollout before training. What must be second?", options: ["Define KPI", "Pilot", "SOP rollout", "Training"], answer: "B" },
-  { id: 18, section: "Logical", competency: "execution", prompt: "Rule: if a project risk is flagged, a mitigation owner must be assigned within 24 hours. A risk was flagged and no owner assigned. What follows?", options: ["Rule followed", "Rule violated", "Risk was not real", "Cannot determine"], answer: "B" },
-  { id: 19, section: "Logical", competency: "systems", prompt: "Odd one out:", options: ["Runbook", "SOP", "Post-mortem", "Ladle"], answer: "D" },
-  { id: 20, section: "Logical", competency: "execution", prompt: "Constraint: Mia cannot close Thursday. Leo must close Thursday. Who closes Thursday?", options: ["Mia", "Leo", "Either one", "Neither"], answer: "B" },
-  { id: 21, section: "Logical", competency: "fb", prompt: "All TCS cooling logs require timestamps. A chili cooling log has no timestamps. Conclusion:", options: ["Log is valid", "Log is noncompliant", "Only manager sign-off is missing", "Cannot determine"], answer: "B" },
-  { id: 22, section: "Logical", competency: "systems", prompt: "If all projects with clear milestones finish on time, and Project Atlas finished on time, which must be true?", options: ["Atlas definitely had clear milestones", "Atlas may or may not have had clear milestones", "Atlas finished late", "Milestones are irrelevant"], answer: "B" },
-  { id: 23, section: "Logical", competency: "systems", prompt: "Sequence: 3, 7, 13, 21, 31, ?", options: ["41", "42", "43", "44"], answer: "C" },
-  { id: 24, section: "Logical", competency: "execution", prompt: "Rule: candidates must meet all three competency minimums. A candidate passes raw and weighted scores but misses Execution minimum. Decision:", options: ["Advance", "Do not advance", "Advance with referral", "Re-score only"], answer: "B" }
+  { id: 35, section: "Logical", competency: "systems", prompt: "Order constraints: define KPI before pilot, pilot before SOP, SOP before training. What must be second?", options: ["Define KPI", "Pilot", "SOP", "Training"], answer: "B" },
+  { id: 36, section: "Logical", competency: "execution", prompt: "Rule: if a risk is flagged, assign mitigation owner in 24 hours. Risk flagged, no owner assigned. Conclusion:", options: ["Rule followed", "Rule violated", "Risk removed", "Cannot determine"], answer: "B" },
+  { id: 37, section: "Logical", competency: "fb", prompt: "All cooling logs require timestamps. A cooling log has none. Conclusion:", options: ["Compliant", "Noncompliant", "Only manager sign-off missing", "Cannot determine"], answer: "B" },
+  { id: 38, section: "Logical", competency: "systems", prompt: "All SOPs are version-controlled. All version-controlled docs are auditable. Therefore:", options: ["All SOPs are auditable", "No SOPs are auditable", "Only new SOPs are auditable", "Cannot infer"], answer: "A" },
+  { id: 39, section: "Logical", competency: "execution", prompt: "If a project is overdue, director is notified. Director was notified. Which must be true?", options: ["Project is overdue", "Project may or may not be overdue", "Project is complete", "Notification was invalid"], answer: "B" },
+  { id: 40, section: "Logical", competency: "systems", prompt: "Odd one out:", options: ["Runbook", "SOP", "Post-mortem", "Ladle"], answer: "D" },
+  { id: 41, section: "Logical", competency: "fb", prompt: "Par levels sequence: 20, 24, 28, 32, ?. Next value =", options: ["34", "36", "38", "40"], answer: "B" },
+  { id: 42, section: "Logical", competency: "systems", prompt: "Rule: if queue length exceeds 12, open backup line. Queue is 14 and backup line stayed closed. Conclusion:", options: ["Rule followed", "Rule violated", "Queue under 12", "Cannot determine"], answer: "B" },
+  { id: 43, section: "Logical", competency: "execution", prompt: "Constraint: Mia cannot work Tuesday. Leo must work Tuesday. Who works Tuesday?", options: ["Mia", "Leo", "Either one", "Neither"], answer: "B" },
+  { id: 44, section: "Logical", competency: "systems", prompt: "Sequence: 2, 6, 12, 20, 30, ?. Next value =", options: ["40", "41", "42", "44"], answer: "C" },
+  { id: 45, section: "Logical", competency: "fb", prompt: "All allergen tickets require manager verification. Ticket #211 has no manager verification. Conclusion:", options: ["Compliant", "Noncompliant", "Only timestamp missing", "Cannot determine"], answer: "B" },
+  { id: 46, section: "Logical", competency: "systems", prompt: "If A must finish before B, and B before C, then when C starts, what must be true?", options: ["A and B are complete", "Only B is complete", "Only A is complete", "Neither must be complete"], answer: "A" },
+  { id: 47, section: "Logical", competency: "execution", prompt: "Policy: candidate must pass all three competency minimums. Candidate misses one minimum. Decision:", options: ["Advance", "Do not advance", "Advance with coaching", "Ignore competency gate"], answer: "B" },
+  { id: 48, section: "Logical", competency: "systems", prompt: "Data points: 9, 9, 10, 12, 30. Median =", options: ["9", "10", "12", "14"], answer: "B" },
+  { id: 49, section: "Logical", competency: "fb", prompt: "Cooling standard: 135F to 70F within 2 hours, and to 41F within 6 total hours. Soup cooled in 1 hour then reached 41F by hour 5. Conclusion:", options: ["Compliant", "Noncompliant", "Needs reheating", "Cannot determine"], answer: "A" },
+  { id: 50, section: "Logical", competency: "execution", prompt: "Rule: every milestone must have an owner. Milestone 6 has no owner. Conclusion:", options: ["Rule satisfied", "Rule violated", "Only due date missing", "Cannot determine"], answer: "B" }
+];
+
+const TOTAL_QUESTIONS = QUESTIONS.length;
+const RAW_PASS_MIN = Math.ceil(TOTAL_QUESTIONS * PASS_MODEL.rawPassRatio);
+
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/i;
+const EMAIL_TYPO_MAP = {
+  "gmial.com": "gmail.com",
+  "gmil.com": "gmail.com",
+  "gmail.co": "gmail.com",
+  "yaho.com": "yahoo.com",
+  "yahoo.co": "yahoo.com",
+  "hotnail.com": "hotmail.com",
+  "hotmial.com": "hotmail.com",
+  "outlok.com": "outlook.com",
+  "outlook.co": "outlook.com",
+  "iclod.com": "icloud.com",
+  "icloud.co": "icloud.com"
+};
+const COMMON_EMAIL_DOMAINS = [
+  "gmail.com",
+  "yahoo.com",
+  "outlook.com",
+  "hotmail.com",
+  "icloud.com",
+  "aol.com",
+  "protonmail.com",
+  "live.com",
+  "msn.com",
+  "larkinsrestaurants.com"
 ];
 
 const state = {
   endAt: null,
   timerId: null,
-  startedAt: null
+  startedAt: null,
+  presented: []
 };
 
 const setupEl = document.querySelector("#setup");
@@ -66,11 +131,30 @@ submitBtn.addEventListener("click", () => submitTest(false));
 
 function startTest() {
   const name = valueOf("#candidateName");
+  const email = valueOf("#candidateEmail");
+
   if (!name) {
     alert("Please enter candidate name.");
     return;
   }
 
+  const emailValidation = validateCandidateEmail(email);
+  if (!emailValidation.ok) {
+    alert(emailValidation.error);
+    return;
+  }
+
+  if (emailValidation.suggestion) {
+    const proceed = window.confirm(`Did you mean ${emailValidation.suggestion}? Click OK to use it, or Cancel to edit.`);
+    if (proceed) {
+      const emailEl = document.querySelector("#candidateEmail");
+      if (emailEl) emailEl.value = emailValidation.suggestion;
+    } else {
+      return;
+    }
+  }
+
+  state.presented = shuffleWithinSections(QUESTIONS);
   state.startedAt = Date.now();
   state.endAt = state.startedAt + ASSESSMENT_MINUTES * 60 * 1000;
 
@@ -84,37 +168,38 @@ function startTest() {
 
 function renderQuestions() {
   formEl.innerHTML = "";
-  const sections = ["Numerical", "Verbal", "Logical"];
 
-  sections.forEach((section) => {
+  SECTION_ORDER.forEach((section) => {
     const header = document.createElement("h3");
     header.textContent = section;
     formEl.appendChild(header);
 
-    QUESTIONS.filter((q) => q.section === section).forEach((q) => {
-      const wrapper = document.createElement("fieldset");
-      wrapper.className = "question";
+    state.presented
+      .filter((q) => q.section === section)
+      .forEach((q) => {
+        const wrapper = document.createElement("fieldset");
+        wrapper.className = "question";
 
-      const legend = document.createElement("p");
-      legend.innerHTML = `<strong>${q.id}.</strong> ${q.prompt}`;
-      wrapper.appendChild(legend);
+        const legend = document.createElement("p");
+        legend.innerHTML = `<strong>${q.id}.</strong> ${q.prompt}`;
+        wrapper.appendChild(legend);
 
-      const choices = document.createElement("div");
-      choices.className = "choices";
+        const choices = document.createElement("div");
+        choices.className = "choices";
 
-      q.options.forEach((opt, idx) => {
-        const code = ["A", "B", "C", "D"][idx];
-        const id = `q${q.id}_${code}`;
-        const label = document.createElement("label");
-        label.className = "choice";
-        label.setAttribute("for", id);
-        label.innerHTML = `<input id="${id}" type="radio" name="q${q.id}" value="${code}"> ${code}) ${opt}`;
-        choices.appendChild(label);
+        q.options.forEach((opt, idx) => {
+          const code = ["A", "B", "C", "D"][idx];
+          const id = `q${q.id}_${code}`;
+          const label = document.createElement("label");
+          label.className = "choice";
+          label.setAttribute("for", id);
+          label.innerHTML = `<input id="${id}" type="radio" name="q${q.id}" value="${code}"> ${code}) ${opt}`;
+          choices.appendChild(label);
+        });
+
+        wrapper.appendChild(choices);
+        formEl.appendChild(wrapper);
       });
-
-      wrapper.appendChild(choices);
-      formEl.appendChild(wrapper);
-    });
   });
 }
 
@@ -131,46 +216,42 @@ function tick() {
   }
 }
 
-function submitTest(autoSubmitted) {
+async function submitTest(autoSubmitted) {
   clearInterval(state.timerId);
-  const answers = {};
 
+  const answers = {};
   QUESTIONS.forEach((q) => {
     const checked = document.querySelector(`input[name=\"q${q.id}\"]:checked`);
     answers[q.id] = checked ? checked.value : "";
   });
 
-  const score = scoreCandidate(answers);
-  const payload = {
+  const durationMinutes = Math.round((Date.now() - state.startedAt) / 60000);
+  const localScore = scoreCandidate(answers, durationMinutes);
+
+  const submissionPayload = {
     candidateName: valueOf("#candidateName"),
     candidateEmail: valueOf("#candidateEmail"),
-    role: "management_systems",
-    roleLabel: PASS_MODEL.label,
     submittedAt: new Date().toISOString(),
-    durationMinutes: Math.round((Date.now() - state.startedAt) / 60000),
+    durationMinutes,
     autoSubmitted,
     answers,
-    ...score
+    testVersion: TEST_VERSION
   };
+
+  let backendResult = { ok: false, skipped: true, error: "Backend endpoint not configured." };
+  if (SUBMIT_ENDPOINT) {
+    backendResult = await sendSubmissionToBackend(submissionPayload);
+  }
 
   testEl.classList.add("hidden");
-  renderResults(payload);
+  renderResults(localScore, backendResult, submissionPayload);
 }
 
-function scoreCandidate(answers) {
+function scoreCandidate(answers, durationMinutes) {
   let raw = 0;
 
-  const sectionTotals = {
-    Numerical: { correct: 0, total: 0 },
-    Verbal: { correct: 0, total: 0 },
-    Logical: { correct: 0, total: 0 }
-  };
-
-  const competencyTotals = {
-    fb: { label: COMPETENCY_META.fb.label, correct: 0, total: 0 },
-    systems: { label: COMPETENCY_META.systems.label, correct: 0, total: 0 },
-    execution: { label: COMPETENCY_META.execution.label, correct: 0, total: 0 }
-  };
+  const sectionTotals = buildSectionTotals();
+  const competencyTotals = buildCompetencyTotals();
 
   QUESTIONS.forEach((q) => {
     const isCorrect = answers[q.id] === q.answer;
@@ -186,23 +267,24 @@ function scoreCandidate(answers) {
 
   let sectionWeightedScore = 0;
   Object.keys(sectionTotals).forEach((section) => {
-    const ratio = sectionTotals[section].correct / sectionTotals[section].total;
+    const ratio = sectionTotals[section].total > 0 ? sectionTotals[section].correct / sectionTotals[section].total : 0;
     sectionWeightedScore += ratio * SECTION_WEIGHTS[section] * 100;
   });
 
   let competencyWeightedScore = 0;
   Object.keys(competencyTotals).forEach((key) => {
-    const ratio = competencyTotals[key].correct / competencyTotals[key].total;
+    const ratio = competencyTotals[key].total > 0 ? competencyTotals[key].correct / competencyTotals[key].total : 0;
     competencyWeightedScore += ratio * COMPETENCY_META[key].weight * 100;
   });
 
   const competencyPass = Object.keys(competencyTotals).every((key) => {
-    const ratio = competencyTotals[key].correct / competencyTotals[key].total;
+    const ratio = competencyTotals[key].total > 0 ? competencyTotals[key].correct / competencyTotals[key].total : 0;
     return ratio >= COMPETENCY_META[key].minRatio;
   });
 
   const weightedScore = Math.round((sectionWeightedScore * 0.4) + (competencyWeightedScore * 0.6));
-  const pass = raw >= PASS_MODEL.rawPass && weightedScore >= PASS_MODEL.weightedPass && competencyPass;
+  const rapidFlag = durationMinutes < RAPID_FLAG_MINUTES;
+  const pass = raw >= RAW_PASS_MIN && weightedScore >= PASS_MODEL.weightedPass && competencyPass;
 
   return {
     rawScore: raw,
@@ -212,47 +294,206 @@ function scoreCandidate(answers) {
     sectionTotals,
     competencyTotals,
     competencyPass,
+    rapidFlag,
     pass
   };
 }
 
-function renderResults(result) {
+function renderResults(localScore, backendResult, submissionPayload) {
   resultsEl.classList.remove("hidden");
 
-  const recommendation = result.pass ? "Advance to structured interview" : "Do not advance";
-  const competencyFlag = result.competencyPass ? "All competency minimums met" : "One or more competency minimums missed";
+  if (SUBMIT_ENDPOINT && !SHOW_CANDIDATE_SCORE) {
+    if (backendResult.ok) {
+      const ref = backendResult.submissionId || "received";
+      resultsEl.innerHTML = `
+        <h2>Assessment Submitted</h2>
+        <p>Thank you, ${escapeHtml(submissionPayload.candidateName)}. Your assessment has been submitted.</p>
+        <p class="small">Reference ID: <code>${escapeHtml(ref)}</code></p>
+      `;
+      return;
+    }
+
+    resultsEl.innerHTML = `
+      <h2>Submission Issue</h2>
+      <p>We could not submit your assessment automatically.</p>
+      <p class="small">Error: ${escapeHtml(backendResult.error || "Unknown error")}</p>
+      <p class="small">Please contact the hiring team and provide your name and email used on this form.</p>
+    `;
+    return;
+  }
+
+  const recommendation = localScore.pass ? "Advance to structured interview" : "Do not advance";
+  const competencyFlag = localScore.competencyPass ? "All competency minimums met" : "One or more competency minimums missed";
+  const backendStatus = backendResult.ok
+    ? `Backend submission saved (${backendResult.submissionId || "ok"}).`
+    : backendResult.skipped
+      ? "No backend configured. Local scoring only."
+      : `Backend submission failed: ${backendResult.error}`;
+
+  const sectionRows = SECTION_ORDER.map((section) => {
+    const row = localScore.sectionTotals[section];
+    return `<tr><td>${section}</td><td>${row.correct}</td><td>${row.total}</td></tr>`;
+  }).join("");
+
+  const competencyRows = Object.keys(COMPETENCY_META).map((key) => {
+    const row = localScore.competencyTotals[key];
+    return `<tr><td>${COMPETENCY_META[key].label}</td><td>${row.correct}</td><td>${row.total}</td><td>${Math.round(COMPETENCY_META[key].minRatio * 100)}%</td></tr>`;
+  }).join("");
 
   resultsEl.innerHTML = `
     <h2>Result Summary</h2>
     <p>
-      <span class="kpi"><strong>Candidate:</strong> ${escapeHtml(result.candidateName)}</span>
-      <span class="kpi"><strong>Track:</strong> ${escapeHtml(result.roleLabel)}</span>
-      <span class="kpi"><strong>Raw:</strong> ${result.rawScore}/24</span>
-      <span class="kpi"><strong>Weighted:</strong> ${result.weightedScore}/100</span>
+      <span class="kpi"><strong>Candidate:</strong> ${escapeHtml(submissionPayload.candidateName)}</span>
+      <span class="kpi"><strong>Track:</strong> ${escapeHtml(PASS_MODEL.label)}</span>
+      <span class="kpi"><strong>Version:</strong> ${escapeHtml(TEST_VERSION)}</span>
+      <span class="kpi"><strong>Raw:</strong> ${localScore.rawScore}/${TOTAL_QUESTIONS}</span>
+      <span class="kpi"><strong>Weighted:</strong> ${localScore.weightedScore}/100</span>
     </p>
     <p>
       <span class="kpi"><strong>Recommendation:</strong> ${recommendation}</span>
       <span class="kpi"><strong>Competency Gate:</strong> ${competencyFlag}</span>
-      <span class="kpi"><strong>Submitted:</strong> ${new Date(result.submittedAt).toLocaleString()}</span>
+      <span class="kpi"><strong>Rapid Completion:</strong> ${localScore.rapidFlag ? "Yes" : "No"}</span>
     </p>
     <table class="result-table">
       <thead><tr><th>Section</th><th>Correct</th><th>Total</th></tr></thead>
-      <tbody>
-        <tr><td>Numerical</td><td>${result.sectionTotals.Numerical.correct}</td><td>${result.sectionTotals.Numerical.total}</td></tr>
-        <tr><td>Verbal</td><td>${result.sectionTotals.Verbal.correct}</td><td>${result.sectionTotals.Verbal.total}</td></tr>
-        <tr><td>Logical</td><td>${result.sectionTotals.Logical.correct}</td><td>${result.sectionTotals.Logical.total}</td></tr>
-      </tbody>
+      <tbody>${sectionRows}</tbody>
     </table>
     <table class="result-table">
       <thead><tr><th>Competency</th><th>Correct</th><th>Total</th><th>Minimum</th></tr></thead>
-      <tbody>
-        <tr><td>${COMPETENCY_META.fb.label}</td><td>${result.competencyTotals.fb.correct}</td><td>${result.competencyTotals.fb.total}</td><td>${Math.round(COMPETENCY_META.fb.minRatio * 100)}%</td></tr>
-        <tr><td>${COMPETENCY_META.systems.label}</td><td>${result.competencyTotals.systems.correct}</td><td>${result.competencyTotals.systems.total}</td><td>${Math.round(COMPETENCY_META.systems.minRatio * 100)}%</td></tr>
-        <tr><td>${COMPETENCY_META.execution.label}</td><td>${result.competencyTotals.execution.correct}</td><td>${result.competencyTotals.execution.total}</td><td>${Math.round(COMPETENCY_META.execution.minRatio * 100)}%</td></tr>
-      </tbody>
+      <tbody>${competencyRows}</tbody>
     </table>
-    <p class="small">Assessment complete. Thank you.</p>
+    <p class="small">Raw pass minimum: ${RAW_PASS_MIN}/${TOTAL_QUESTIONS}; weighted pass minimum: ${PASS_MODEL.weightedPass}/100.</p>
+    <p class="small">${escapeHtml(backendStatus)}</p>
   `;
+}
+
+async function sendSubmissionToBackend(payload) {
+  try {
+    const response = await fetch(SUBMIT_ENDPOINT, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok || data?.ok === false) {
+      return { ok: false, skipped: false, error: data?.error || `HTTP ${response.status}` };
+    }
+
+    return {
+      ok: true,
+      skipped: false,
+      submissionId: data?.submissionId || ""
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      skipped: false,
+      error: error instanceof Error ? error.message : "Unknown network error"
+    };
+  }
+}
+
+function buildSectionTotals() {
+  const totals = {};
+  SECTION_ORDER.forEach((section) => {
+    totals[section] = { correct: 0, total: 0 };
+  });
+  return totals;
+}
+
+function buildCompetencyTotals() {
+  const totals = {};
+  Object.keys(COMPETENCY_META).forEach((key) => {
+    totals[key] = { label: COMPETENCY_META[key].label, correct: 0, total: 0 };
+  });
+  return totals;
+}
+
+function validateCandidateEmail(email) {
+  const normalized = String(email || "").trim().toLowerCase();
+  if (!normalized) return { ok: false, error: "Please enter candidate email." };
+  if (!EMAIL_REGEX.test(normalized)) {
+    return { ok: false, error: "Please enter a valid email format (example: name@company.com)." };
+  }
+
+  const suggestion = suggestEmailCorrection(normalized);
+  return { ok: true, suggestion };
+}
+
+function suggestEmailCorrection(email) {
+  const parts = email.split("@");
+  if (parts.length !== 2) return "";
+
+  const [local, domainRaw] = parts;
+  const domain = domainRaw.toLowerCase();
+
+  if (EMAIL_TYPO_MAP[domain]) {
+    return `${local}@${EMAIL_TYPO_MAP[domain]}`;
+  }
+
+  if (COMMON_EMAIL_DOMAINS.includes(domain)) return "";
+
+  const closest = findClosestKnownDomain(domain);
+  if (!closest) return "";
+
+  return `${local}@${closest}`;
+}
+
+function findClosestKnownDomain(domain) {
+  let best = "";
+  let bestDistance = Number.POSITIVE_INFINITY;
+
+  COMMON_EMAIL_DOMAINS.forEach((candidate) => {
+    const d = levenshtein(domain, candidate);
+    if (d < bestDistance) {
+      bestDistance = d;
+      best = candidate;
+    }
+  });
+
+  if (bestDistance <= 1) return best;
+  if (bestDistance === 2 && Math.abs(domain.length - best.length) <= 1) return best;
+  return "";
+}
+
+function levenshtein(a, b) {
+  const m = a.length;
+  const n = b.length;
+  const dp = Array.from({ length: m + 1 }, () => Array(n + 1).fill(0));
+
+  for (let i = 0; i <= m; i += 1) dp[i][0] = i;
+  for (let j = 0; j <= n; j += 1) dp[0][j] = j;
+
+  for (let i = 1; i <= m; i += 1) {
+    for (let j = 1; j <= n; j += 1) {
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+      dp[i][j] = Math.min(
+        dp[i - 1][j] + 1,
+        dp[i][j - 1] + 1,
+        dp[i - 1][j - 1] + cost
+      );
+    }
+  }
+
+  return dp[m][n];
+}
+
+function shuffleWithinSections(input) {
+  const out = [];
+  SECTION_ORDER.forEach((section) => {
+    const subset = input.filter((q) => q.section === section);
+    shuffleInPlace(subset);
+    out.push(...subset);
+  });
+  return out;
+}
+
+function shuffleInPlace(arr) {
+  for (let i = arr.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
 }
 
 function valueOf(selector) {
@@ -265,6 +506,6 @@ function escapeHtml(text) {
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
+    .replace(/\"/g, "&quot;")
     .replace(/'/g, "&#039;");
 }
